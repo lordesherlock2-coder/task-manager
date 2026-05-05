@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>时间任务管理</title>
+<style>
+/* ============ CSS 变量 ============ */
+:root {
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --text: #212529;
+  --text2: #6c757d;
+  --accent: #4a6cf7;
+  --accent-light: #eef1ff;
+  --danger: #e03131;
+  --danger-light: #fff0f0;
+  --success: #2f9e44;
+  --success-light: #ebfbee;
+  --warning: #f08c00;
+  --warning-light: #fff9f0;
+  --border: #e9ecef;
+  --shadow: 0 1px 3px rgba(0,0,0,.08);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --header-h: 52px;
+  --drawer-w: 260px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --good: #2f9e44;
+  --bad: #e03131;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-family:var(--font);font-size:15px;line-height:1.5;color:var(--text);background:var(--bg);-webkit-tap-highlight-color:transparent}
+body{max-width:768px;margin:0 auto;min-height:100vh;position:relative;overflow-x:hidden}
+button{touch-action:manipulation;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit}
+
+/* ============ Header ============ */
+.header{
+  position:sticky;top:0;z-index:100;background:var(--card);
+  height:var(--header-h);display:flex;align-items:center;padding:0 16px;
+  border-bottom:1px solid var(--border);gap:12px;
+}
+.header .menu-btn{width:36px;height:36px;border:none;background:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm)}
+.header .menu-btn:active{background:var(--border)}
+.header .title{font-size:17px;font-weight:700}
+
+/* ============ Drawer ============ */
+.drawer-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);
+  z-index:200;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;
+}
+.drawer-overlay.open{opacity:1;visibility:visible}
+.drawer{
+  position:fixed;top:0;left:0;bottom:0;width:var(--drawer-w);background:var(--card);
+  z-index:210;transform:translateX(-100%);transition:transform .25s ease;
+  display:flex;flex-direction:column;
+}
+.drawer.open{transform:translateX(0)}
+.drawer-head{
+  padding:20px 16px 12px;font-size:18px;font-weight:700;
+  border-bottom:1px solid var(--border);
+}
+.drawer-nav{flex:1;padding:8px 0;overflow-y:auto}
+.drawer-nav a{
+  display:flex;align-items:center;gap:12px;padding:13px 20px;
+  text-decoration:none;color:var(--text);font-size:15px;
+  border-left:3px solid transparent;transition:background .15s;
+}
+.drawer-nav a:hover,.drawer-nav a.active{background:var(--accent-light);border-left-color:var(--accent);color:var(--accent)}
+.drawer-nav a .ico{font-size:18px;width:24px;text-align:center}
+
+/* ============ Page Container ============ */
+.page{display:none;padding:16px;padding-bottom:80px}
+.page.active{display:block}
+
+/* ============ Cards & Forms ============ */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+.card h3{font-size:15px;margin-bottom:10px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:15px;outline:none;transition:border .2s;background:var(--bg);
+}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);background:var(--card)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:14px;
+  font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-success{background:var(--good);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:13px}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:4px;font-weight:500}
+
+/* ============ Todo ============ */
+.todo-item{
+  display:flex;align-items:center;gap:10px;padding:12px;
+  border-radius:var(--radius-sm);background:var(--card);margin-bottom:8px;
+  box-shadow:var(--shadow);transition:opacity .3s;
+}
+.todo-item.done{opacity:.5}
+.todo-item.done .todo-name{text-decoration:line-through}
+.todo-check{
+  width:22px;height:22px;border-radius:50%;border:2px solid var(--border);
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:transparent;
+}
+.todo-check.done{background:var(--good);border-color:var(--good);color:#fff}
+.todo-body{flex:1;min-width:0}
+.todo-name{font-size:14px;font-weight:500}
+.todo-meta{font-size:12px;color:var(--text2)}
+.todo-deadline.urgent{color:var(--danger);font-weight:600}
+
+/* ============ Review Plan ============ */
+.plan-card{margin-bottom:12px}
+.plan-card .plan-header{display:flex;justify-content:space-between;align-items:flex-start}
+.plan-card .plan-name{font-weight:600;font-size:15px}
+.plan-card .plan-meta{font-size:12px;color:var(--text2);margin-top:4px}
+.instance-list{margin-top:10px}
+.instance-row{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 10px;border-radius:6px;margin-bottom:4px;font-size:13px;
+  background:var(--bg);
+}
+.instance-row .st{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600}
+.st-pending{background:var(--accent-light);color:var(--accent)}
+.st-completed{background:var(--success-light);color:var(--good)}
+.st-postponed{background:var(--warning-light);color:var(--warning)}
+.st-cancelled{background:#f1f3f5;color:#868e96;text-decoration:line-through}
+.st-overdue{background:var(--danger-light);color:var(--danger)}
+
+.interval-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:14px;font-size:12px;
+  background:var(--accent-light);color:var(--accent);font-weight:500;margin:2px;
+}
+.interval-chip button{
+  background:none;border:none;color:inherit;cursor:pointer;font-size:14px;
+  line-height:1;padding:0;margin-left:2px;opacity:.6;
+}
+.interval-chip button:hover{opacity:1}
+
+/* ============ Calendar ============ */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-nav .month-label{font-size:16px;font-weight:700}
+.cal-nav button{width:36px;height:36px;border:none;background:var(--card);border-radius:50%;font-size:18px;cursor:pointer;box-shadow:var(--shadow)}
+.cal-nav button:active{background:var(--border)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day-name{text-align:center;font-size:11px;color:var(--text2);padding:6px 0;font-weight:600}
+.cal-cell{
+  aspect-ratio:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;border-radius:var(--radius-sm);cursor:pointer;
+  font-size:13px;font-weight:500;position:relative;background:var(--card);
+  box-shadow:var(--shadow);gap:2px;
+}
+.cal-cell:active{opacity:.7}
+.cal-cell.today{border:2px solid var(--accent)}
+.cal-cell.other-month{opacity:.35}
+.cal-cell .badges{display:flex;gap:3px}
+.cal-cell .badge{
+  min-width:18px;height:18px;border-radius:9px;font-size:10px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;
+  line-height:1;padding:0 5px;
+}
+.cal-cell .badge.review{background:var(--danger-light);color:var(--danger)}
+.cal-cell .badge.todo{background:var(--accent-light);color:var(--accent)}
+
+/* ============ Sheet ============ */
+.sheet-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);
+  z-index:300;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;
+}
+.sheet-overlay.open{opacity:1;visibility:visible}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;background:var(--card);z-index:310;
+  border-radius:16px 16px 0 0;max-height:75vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .25s ease;
+  padding:8px 0 24px;
+}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:5px;background:var(--border);border-radius:3px;margin:8px auto 12px}
+.sheet-title{font-size:16px;font-weight:700;padding:0 16px 12px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.sheet-item{padding:12px 16px;border-bottom:1px solid var(--border)}
+.sheet-item:last-child{border-bottom:none}
+.sheet-item .item-name{font-weight:600;font-size:14px}
+.sheet-item .item-meta{font-size:12px;color:var(--text2);margin:2px 0 6px}
+.sheet-item .item-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ============ Timer ============ */
+.timer-circle{
+  width:200px;height:200px;border-radius:50%;border:6px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  margin:20px auto;transition:border-color .3s;position:relative;
+}
+.timer-circle.running{border-color:var(--accent)}
+.timer-circle.paused{border-color:var(--warning)}
+.timer-circle.finished{border-color:var(--good)}
+.timer-time{font-size:42px;font-weight:700;font-variant-numeric:tabular-nums}
+.timer-btns{display:flex;gap:10px;justify-content:center;margin:12px 0}
+.timer-btns button{min-width:64px}
+
+.pomo-indicator{
+  text-align:center;padding:12px;margin-top:8px;border-radius:var(--radius-sm);
+  background:var(--warning-light);color:var(--warning);font-weight:600;
+  font-size:14px;display:none;
+}
+.pomo-indicator.show{display:block}
+
+/* ============ Pie Chart ============ */
+.pie-wrap{display:flex;align-items:center;gap:20px;justify-content:center;flex-wrap:wrap}
+.pie-legend{font-size:12px}
+.pie-legend>div{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.pie-legend .swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* ============ Stats ============ */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.stat-box{
+  background:var(--card);border-radius:var(--radius);padding:14px;
+  box-shadow:var(--shadow);text-align:center;
+}
+.stat-box .num{font-size:32px;font-weight:700}
+.stat-box .lbl{font-size:12px;color:var(--text2);margin-top:2px}
+
+.timeline-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:6px;
+  background:var(--card);box-shadow:var(--shadow);
+}
+.timeline-item .tl-left{display:flex;align-items:center;gap:10px}
+.timeline-item .tl-cat{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.timeline-item .tl-name{font-size:14px;font-weight:500}
+.timeline-item .tl-time{font-size:13px;color:var(--text2)}
+
+/* ============ Misc ============ */
+.empty-state{text-align:center;padding:40px 16px;color:var(--text2)}
+.empty-state .emoji{font-size:40px;margin-bottom:8px}
+.empty-state p{font-size:14px}
+.flex-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.tag-todo{background:var(--accent-light);color:var(--accent)}
+.tag-review{background:var(--warning-light);color:var(--warning)}
+.mb-8{margin-bottom:8px}
+.mb-12{margin-bottom:12px}
+.mt-8{margin-top:8px}
+.text-sm{font-size:13px}
+.text-xs{font-size:11px}
+.color-muted{color:var(--text2)}
+</style>
+</head>
+<body>
+
+<!-- ============ Header ============ -->
+<div class="header">
+  <button class="menu-btn" onclick="toggleDrawer()" aria-label="菜单">☰</button>
+  <span class="title" id="pageTitle">Todo 清单</span>
+</div>
+
+<!-- ============ Drawer ============ -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+<nav class="drawer" id="drawer">
+  <div class="drawer-head">📋 菜单</div>
+  <div class="drawer-nav">
+    <a href="#todo" data-page="todo" onclick="navigateTo('todo')"><span class="ico">✅</span> Todo 清单</a>
+    <a href="#review" data-page="review" onclick="navigateTo('review')"><span class="ico">📖</span> 学习复习</a>
+    <a href="#calendar" data-page="calendar" onclick="navigateTo('calendar')"><span class="ico">📅</span> 日历</a>
+    <a href="#track" data-page="track" onclick="navigateTo('track')"><span class="ico">⏱</span> 时间追踪</a>
+    <a href="#stats" data-page="stats" onclick="navigateTo('stats')"><span class="ico">📊</span> 统计</a>
+    <a href="#settings" data-page="settings" onclick="navigateTo('settings')"><span class="ico">⚙</span> 设置</a>
+  </div>
+</nav>
+
+<!-- ============ Page: Todo 清单 ============ -->
+<div class="page active" id="page-todo">
+  <div class="card">
+    <h3>添加任务</h3>
+    <div class="form-group">
+      <label>任务名称</label>
+      <input id="todoName" placeholder="输入任务名称...">
+    </div>
+    <div class="form-group">
+      <label>截止日期</label>
+      <input type="date" id="todoDeadline">
+    </div>
+    <button class="btn btn-primary" onclick="addTodo()">➕ 添加任务</button>
+  </div>
+  <div class="flex-row mb-12">
+    <button class="btn btn-sm btn-outline filter-btn active" data-filter="all" onclick="setTodoFilter('all',this)">全部</button>
+    <button class="btn btn-sm btn-outline filter-btn" data-filter="active" onclick="setTodoFilter('active',this)">未完成</button>
+    <button class="btn btn-sm btn-outline filter-btn" data-filter="done" onclick="setTodoFilter('done',this)">已完成</button>
+  </div>
+  <div id="todoList"></div>
+</div>
+
+<!-- ============ Page: 学习复习 ============ -->
+<div class="page" id="page-review">
+  <div class="card">
+    <h3>创建复习计划</h3>
+    <div class="form-group">
+      <label>任务名称</label>
+      <input id="reviewName" placeholder="例如：背诵英语单词">
+    </div>
+    <div class="form-group">
+      <label>开始日期（第一次复习日期）</label>
+      <input type="date" id="reviewStartDate">
+    </div>
+    <div class="form-group">
+      <label>复习模板</label>
+      <select id="reviewTemplate" onchange="applyTemplate()">
+        <option value="custom">自定义</option>
+        <option value="ebbinghaus">艾宾浩斯 (1-2-4-7-15天)</option>
+        <option value="simple">简化版 (1-3-7天)</option>
+        <option value="weekly">每周复习 (7-14-21天)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>复习间隔（天数，用逗号分隔）</label>
+      <div id="intervalChips" class="mb-8"></div>
+      <input id="reviewIntervals" value="1,3,7" placeholder="例如: 1,3,7">
+    </div>
+    <button class="btn btn-primary" onclick="addReviewPlan()">➕ 创建计划</button>
+  </div>
+  <div id="reviewPlanList"></div>
+</div>
+
+<!-- ============ Page: 日历 ============ -->
+<div class="page" id="page-calendar">
+  <div class="cal-nav">
+    <button onclick="prevMonth()">◀</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button onclick="nextMonth()">▶</button>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="sheetTitle"></div>
+  <div id="sheetContent"></div>
+</div>
+
+<!-- ============ Page: 时间追踪 ============ -->
+<div class="page" id="page-track">
+  <div class="card">
+    <h3>⏱ 计时器</h3>
+    <div class="timer-circle" id="timerCircle">
+      <span class="timer-time" id="timerDisplay">00:00</span>
+    </div>
+    <div class="timer-btns">
+      <button class="btn btn-primary" id="timerStartBtn" onclick="timerStart()">▶ 开始</button>
+      <button class="btn btn-warning" id="timerPauseBtn" onclick="timerPause()" style="display:none">⏸ 暂停</button>
+      <button class="btn btn-danger" id="timerStopBtn" onclick="timerStop()" style="display:none">⏹ 停止</button>
+    </div>
+    <label style="display:block;text-align:center;font-size:13px;color:var(--text2)">活动名称</label>
+    <input id="timerActivity" placeholder="正在做什么？" style="text-align:center;max-width:240px;margin:0 auto;display:block">
+  </div>
+
+  <div class="card">
+    <h3>🍅 番茄钟</h3>
+    <div class="flex-row mb-8">
+      <label style="font-size:13px">专注时长(分钟):</label>
+      <input type="number" id="pomoDuration" value="25" min="1" max="120" style="width:70px;padding:6px;text-align:center">
+    </div>
+    <div class="timer-circle" id="pomoCircle">
+      <span class="timer-time" id="pomoDisplay">25:00</span>
+    </div>
+    <div class="timer-btns">
+      <button class="btn btn-primary" id="pomoStartBtn" onclick="pomoStart()">🍅 开始专注</button>
+      <button class="btn btn-danger" id="pomoStopBtn" onclick="pomoStop()" style="display:none">⏹ 停止</button>
+    </div>
+    <div class="pomo-indicator" id="pomoFinished">🎉 时间到！专注完成！</div>
+  </div>
+
+  <div class="card">
+    <h3>✎ 手动记录</h3>
+    <div class="form-group">
+      <label>活动名称</label>
+      <input id="manualActivity" placeholder="做了什么？">
+    </div>
+    <div class="form-group">
+      <label>时长（分钟）</label>
+      <input type="number" id="manualDuration" value="30" min="1">
+    </div>
+    <div class="form-group">
+      <label>分类</label>
+      <select id="manualCategory"></select>
+    </div>
+    <div class="form-group">
+      <label>日期</label>
+      <input type="date" id="manualDate">
+    </div>
+    <button class="btn btn-primary" onclick="addManualRecord()">📝 添加记录</button>
+  </div>
+</div>
+
+<!-- ============ Page: 统计 ============ -->
+<div class="page" id="page-stats">
+  <div class="card">
+    <h3>📋 今日结算</h3>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num" style="color:var(--good)" id="statCompleted">0</div><div class="lbl">完成复习</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--danger)" id="statOverdue">0</div><div class="lbl">逾期未完成</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--warning)" id="statPostponed">0</div><div class="lbl">推迟</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--accent)" id="statTodoDone">0</div><div class="lbl">Todo 完成</div></div>
+    </div>
+    <div class="text-sm color-muted">今日累计追踪时长：<strong id="statTotalTime">0</strong> 分钟</div>
+  </div>
+
+  <div class="card">
+    <h3>📊 今日时间分布</h3>
+    <div class="pie-wrap">
+      <svg id="pieChart" width="160" height="160" viewBox="0 0 160 160"></svg>
+      <div class="pie-legend" id="pieLegend"></div>
+    </div>
+    <div id="pieEmpty" class="empty-state" style="padding:20px"><p>今天还没有时间记录</p></div>
+  </div>
+
+  <div class="card">
+    <h3>🕐 今日时间线</h3>
+    <div id="timelineList"></div>
+  </div>
+
+  <div class="card">
+    <h3>📈 汇总</h3>
+    <div class="flex-row mb-8">
+      <button class="btn btn-sm btn-outline period-btn active" data-period="week" onclick="setPeriod('week',this)">本周</button>
+      <button class="btn btn-sm btn-outline period-btn" data-period="month" onclick="setPeriod('month',this)">本月</button>
+    </div>
+    <div id="summaryContent" class="text-sm"></div>
+  </div>
+</div>
+
+<!-- ============ Page: 设置 ============ -->
+<div class="page" id="page-settings">
+  <div class="card">
+    <h3>分类管理</h3>
+    <div id="categoryList" class="mb-12"></div>
+    <div class="flex-row">
+      <input id="newCatName" placeholder="分类名称" style="flex:1">
+      <input type="color" id="newCatColor" value="#4a6cf7" style="width:40px;height:36px;border:none;cursor:pointer">
+      <button class="btn btn-sm btn-primary" onclick="addCategory()">添加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA LAYER
+// ============================================================
+const LS_KEYS = {
+  categories: 'tm_categories',
+  todoTasks: 'tm_todos',
+  reviewPlans: 'tm_reviews',
+  timeRecords: 'tm_records',
+  pomodoroSettings: 'tm_pomodoro'
+};
+
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+
+function save(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function nowStr() {
+  return new Date().toISOString();
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let categories = load(LS_KEYS.categories, [
+  {id:'cat_study',name:'学习',color:'#4a6cf7'},
+  {id:'cat_work',name:'工作',color:'#2f9e44'},
+  {id:'cat_life',name:'生活',color:'#f08c00'},
+  {id:'cat_entertainment',name:'娱乐',color:'#9c36b5'},
+  {id:'cat_exercise',name:'运动',color:'#e03131'}
+]);
+
+let todoTasks = load(LS_KEYS.todoTasks, []);
+let reviewPlans = load(LS_KEYS.reviewPlans, []);
+let timeRecords = load(LS_KEYS.timeRecords, []);
+let pomodoroSettings = load(LS_KEYS.pomodoroSettings, {focusDuration:25});
+
+function saveAll() {
+  save(LS_KEYS.categories, categories);
+  save(LS_KEYS.todoTasks, todoTasks);
+  save(LS_KEYS.reviewPlans, reviewPlans);
+  save(LS_KEYS.timeRecords, timeRecords);
+  save(LS_KEYS.pomodoroSettings, pomodoroSettings);
+}
+
+// ============================================================
+// ROUTING
+// ============================================================
+const pageTitles = {
+  todo:'Todo 清单',review:'学习复习',calendar:'日历',
+  track:'时间追踪',stats:'统计',settings:'设置'
+};
+
+function navigateTo(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const t=document.getElementById('page-'+page);
+  if(t)t.classList.add('active');
+  document.getElementById('pageTitle').textContent=pageTitles[page]||page;
+  document.querySelectorAll('.drawer-nav a').forEach(a=>a.classList.remove('active'));
+  const link=document.querySelector(`.drawer-nav a[data-page="${page}"]`);
+  if(link)link.classList.add('active');
+  window.location.hash='#'+page;
+  closeDrawer();
+  if(page==='calendar')renderCalendar();
+  if(page==='stats')renderStats();
+  if(page==='review')renderReviewPlans();
+  if(page==='todo')renderTodos();
+  if(page==='settings')renderCategories();
+  if(page==='track')populateCategorySelects();
+}
+
+function initRoute() {
+  const hash=window.location.hash.replace('#','')||'todo';
+  navigateTo(hash);
+}
+window.addEventListener('hashchange',initRoute);
+
+// ============================================================
+// DRAWER
+// ============================================================
+function toggleDrawer() {
+  const d=document.getElementById('drawer');
+  d.classList.contains('open')?closeDrawer():openDrawer();
+}
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+// ============================================================
+// CATEGORIES
+// ============================================================
+function getCategory(id){return categories.find(c=>c.id===id);}
+function getCategoryColor(id){const c=getCategory(id);return c?c.color:'#adb5bd';}
+
+function populateCategorySelects() {
+  const s=document.getElementById('manualCategory');
+  if(!s)return;
+  s.innerHTML=categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function renderCategories() {
+  const el=document.getElementById('categoryList');
+  el.innerHTML=categories.map(c=>`
+    <div class="flex-row mb-8" style="align-items:center;justify-content:space-between">
+      <div class="flex-row" style="align-items:center;gap:8px">
+        <span style="width:16px;height:16px;border-radius:4px;background:${c.color}"></span>
+        <span style="font-size:14px">${escHtml(c.name)}</span>
+      </div>
+      <button class="btn btn-xs btn-outline" onclick="deleteCategory('${c.id}')">删除</button>
+    </div>
+  `).join('')||'<p class="color-muted text-sm">暂无分类</p>';
+}
+
+function addCategory() {
+  const n=document.getElementById('newCatName');
+  const cl=document.getElementById('newCatColor');
+  const name=n.value.trim();
+  if(!name){alert('请输入分类名称');return;}
+  categories.push({id:uid(),name,color:cl.value});
+  n.value='';
+  saveAll();
+  renderCategories();
+  populateCategorySelects();
+}
+
+function deleteCategory(id) {
+  categories=categories.filter(c=>c.id!==id);
+  saveAll();
+  renderCategories();
+  populateCategorySelects();
+}
+
+// ============================================================
+// TODO MODULE
+// ============================================================
+let todoFilter='all';
+
+function setTodoFilter(f,btn) {
+  todoFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderTodos();
+}
+
+function addTodo() {
+  const nm=document.getElementById('todoName');
+  const dl=document.getElementById('todoDeadline');
+  const name=nm.value.trim();
+  if(!name){alert('请输入任务名称');return;}
+  todoTasks.push({id:uid(),name,deadline:dl.value||null,completed:false,createdAt:todayStr()});
+  nm.value='';dl.value='';
+  saveAll();renderTodos();
+}
+
+function toggleTodo(id) {
+  const t=todoTasks.find(t=>t.id===id);
+  if(t){t.completed=!t.completed;saveAll();renderTodos();}
+}
+
+function deleteTodo(id) {
+  todoTasks=todoTasks.filter(t=>t.id!==id);
+  saveAll();renderTodos();
+}
+
+function renderTodos() {
+  const el=document.getElementById('todoList');
+  let list=[...todoTasks];
+  if(todoFilter==='active')list=list.filter(t=>!t.completed);
+  if(todoFilter==='done')list=list.filter(t=>t.completed);
+  list.sort((a,b)=>{
+    if(a.completed!==b.completed)return a.completed?1:-1;
+    if(a.deadline&&b.deadline)return a.deadline.localeCompare(b.deadline);
+    if(a.deadline)return -1;if(b.deadline)return 1;return 0;
+  });
+  if(!list.length){el.innerHTML='<div class="empty-state"><div class="emoji">📝</div><p>暂无任务</p></div>';return;}
+  el.innerHTML=list.map(t=>{
+    const urgent=t.deadline&&t.deadline<=todayStr()&&!t.completed;
+    return `<div class="todo-item ${t.completed?'done':''}">
+      <div class="todo-check ${t.completed?'done':''}" onclick="toggleTodo('${t.id}')">✓</div>
+      <div class="todo-body">
+        <div class="todo-name">${escHtml(t.name)}</div>
+        <div class="todo-meta">${t.deadline?`<span class="todo-deadline ${urgent?'urgent':''}">⏰ ${t.deadline}</span>`:''}</div>
+      </div>
+      <button class="btn btn-xs btn-outline" onclick="deleteTodo('${t.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// REVIEW PLAN MODULE
+// ============================================================
+function applyTemplate() {
+  const val=document.getElementById('reviewTemplate').value;
+  const intervals={ebbinghaus:'1,2,4,7,15',simple:'1,3,7',weekly:'7,14,21',custom:document.getElementById('reviewIntervals').value};
+  document.getElementById('reviewIntervals').value=intervals[val]||intervals.custom;
+  updateIntervalChips();
+}
+
+function updateIntervalChips() {
+  const raw=document.getElementById('reviewIntervals').value;
+  const intervals=raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>0);
+  const el=document.getElementById('intervalChips');
+  if(!intervals.length){el.innerHTML='';return;}
+  let cum=0;
+  el.innerHTML=intervals.map((d,i)=>{
+    cum+=d;
+    return `<span class="interval-chip">第${i+1}次:+${d}天→${cum}天后<button onclick="removeInterval(${i})">×</button></span>`;
+  }).join('');
+}
+
+function removeInterval(idx) {
+  const el=document.getElementById('reviewIntervals');
+  const vals=el.value.split(',').map(s=>s.trim()).filter(s=>s!=='');
+  vals.splice(idx,1);
+  el.value=vals.join(',');
+  updateIntervalChips();
+}
+
+function addReviewPlan() {
+  const nm=document.getElementById('reviewName');
+  const sd=document.getElementById('reviewStartDate');
+  const iv=document.getElementById('reviewIntervals');
+  const name=nm.value.trim();
+  const startDate=sd.value;
+  const intervals=iv.value.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n)&&n>0);
+  if(!name){alert('请输入任务名称');return;}
+  if(!startDate){alert('请选择开始日期');return;}
+  if(!intervals.length){alert('请设置至少一个复习间隔');return;}
+  const instances=[];
+  let d=new Date(startDate+'T00:00:00');
+  for(let i=0;i<intervals.length;i++) {
+    d=new Date(d.getTime()+intervals[i]*86400000);
+    instances.push({id:uid(),index:i+1,scheduledDate:d.toISOString().slice(0,10),status:'pending'});
+  }
+  reviewPlans.push({id:uid(),name,startDate,intervals,instances,createdAt:todayStr()});
+  nm.value='';sd.value='';iv.value='1,3,7';
+  document.getElementById('reviewTemplate').value='simple';
+  updateIntervalChips();
+  saveAll();renderReviewPlans();
+}
+
+function deleteReviewPlan(id) {
+  reviewPlans=reviewPlans.filter(p=>p.id!==id);
+  saveAll();renderReviewPlans();
+}
+
+function getReviewStatus(inst) {
+  if(inst.status==='completed'||inst.status==='cancelled')return inst.status;
+  if(inst.status==='postponed')return 'postponed';
+  if(inst.scheduledDate<todayStr())return 'overdue';
+  return 'pending';
+}
+
+function renderReviewPlans() {
+  const el=document.getElementById('reviewPlanList');
+  if(!reviewPlans.length){el.innerHTML='<div class="empty-state"><div class="emoji">📖</div><p>暂无复习计划</p></div>';return;}
+  el.innerHTML=reviewPlans.map(p=>{
+    const instHtml=p.instances.map(inst=>{
+      const st=getReviewStatus(inst);
+      const lb={pending:'待复习',completed:'已完成',postponed:'已推迟',cancelled:'已取消',overdue:'逾期'};
+      return `<div class="instance-row"><span>第${inst.index}次·${inst.scheduledDate}</span><span class="st st-${st}">${lb[st]}</span></div>`;
+    }).join('');
+    return `<div class="card plan-card">
+      <div class="plan-header">
+        <div><div class="plan-name">${escHtml(p.name)}</div>
+        <div class="plan-meta">开始:${p.startDate}·共${p.intervals.length}次复习</div>
+        <div class="plan-meta">间隔:${p.intervals.map(d=>'+'+d+'天').join('→')}</div></div>
+        <button class="btn btn-xs btn-outline" onclick="deleteReviewPlan('${p.id}')">🗑</button>
+      </div>
+      <div class="instance-list">${instHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// CALENDAR
+// ============================================================
+let calYear,calMonth;
+
+function initCalendar() {
+  const now=new Date();
+  calYear=now.getFullYear();
+  calMonth=now.getMonth();
+}
+
+function prevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function nextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+
+function getDayData(ds) {
+  const rc=reviewPlans.reduce((s,p)=>s+p.instances.filter(i=>{const st=getReviewStatus(i);return i.scheduledDate===ds&&st!=='completed'&&st!=='cancelled';}).length,0);
+  const tc=todoTasks.filter(t=>t.deadline===ds&&!t.completed).length;
+  return{reviewCount:rc,todoCount:tc};
+}
+
+function renderCalendar() {
+  document.getElementById('monthLabel').textContent=calYear+'年 '+(calMonth+1)+'月';
+  const today=todayStr();
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const dipm=new Date(calYear,calMonth,0).getDate();
+  const dn=['日','一','二','三','四','五','六'];
+  let h=dn.map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  for(let i=firstDay-1;i>=0;i--) {
+    const d=dipm-i;
+    const m=calMonth===0?12:calMonth;
+    const y=calMonth===0?calYear-1:calYear;
+    const ds=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dd=getDayData(ds);
+    h+=`<div class="cal-cell other-month" onclick="openSheet('${ds}')"><span>${d}</span><div class="badges">${badgeHtml(dd)}</div></div>`;
+  }
+  for(let d=1;d<=dim;d++) {
+    const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday=ds===today;
+    const dd=getDayData(ds);
+    h+=`<div class="cal-cell${isToday?' today':''}" onclick="openSheet('${ds}')"><span>${d}</span><div class="badges">${badgeHtml(dd)}</div></div>`;
+  }
+  const rem=42-(firstDay+dim);
+  for(let d=1;d<=rem;d++) {
+    const m=calMonth===11?1:calMonth+2;
+    const y=calMonth===11?calYear+1:calYear;
+    const ds=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dd=getDayData(ds);
+    h+=`<div class="cal-cell other-month" onclick="openSheet('${ds}')"><span>${d}</span><div class="badges">${badgeHtml(dd)}</div></div>`;
+  }
+  document.getElementById('calGrid').innerHTML=h;
+}
+
+function badgeHtml(d) {
+  let h='';
+  if(d.reviewCount>0)h+=`<span class="badge review">${d.reviewCount}</span>`;
+  if(d.todoCount>0)h+=`<span class="badge todo">${d.todoCount}</span>`;
+  return h;
+}
+
+function openSheet(ds) {
+  document.getElementById('sheetTitle').textContent=ds;
+  let items=[];
+  reviewPlans.forEach(p=>{
+    p.instances.forEach(inst=>{
+      if(inst.scheduledDate===ds) {
+        const st=getReviewStatus(inst);
+        if(st==='completed'||st==='cancelled')return;
+        items.push({type:'review',planId:p.id,planName:p.name,instanceId:inst.id,instanceIndex:inst.index,status:st,dateStr:ds});
+      }
+    });
+  });
+  todoTasks.forEach(t=>{
+    if(t.deadline===ds&&!t.completed)items.push({type:'todo',todoId:t.id,todoName:t.name,dateStr:ds});
+  });
+  const ct=document.getElementById('sheetContent');
+  if(!items.length){ct.innerHTML='<div class="empty-state" style="padding:20px"><p>这天没有待处理的任务</p></div>';}
+  else {
+    ct.innerHTML=items.map(item=>{
+      if(item.type==='review') {
+        const lb={pending:'待复习',postponed:'已推迟',overdue:'逾期'};
+        return `<div class="sheet-item">
+          <div class="item-name"><span class="tag tag-review">复习</span> ${escHtml(item.planName)}·第${item.instanceIndex}次</div>
+          <div class="item-meta">状态:${lb[item.status]||item.status}</div>
+          <div class="item-actions">
+            <button class="btn btn-sm btn-success" onclick="completeReview('${item.planId}','${item.instanceId}')">✓ 完成</button>
+            <button class="btn btn-sm btn-warning" onclick="postponeReview('${item.planId}','${item.instanceId}')">→ 推迟一天</button>
+            <button class="btn btn-sm btn-outline" onclick="cancelReview('${item.planId}','${item.instanceId}')">✕ 取消</button>
+          </div></div>`;
+      } else {
+        return `<div class="sheet-item">
+          <div class="item-name"><span class="tag tag-todo">Todo</span> ${escHtml(item.todoName)}</div>
+          <div class="item-meta">截止:${item.dateStr}</div>
+          <div class="item-actions"><button class="btn btn-sm btn-success" onclick="completeTodoFromSheet('${item.todoId}')">✓ 完成</button></div>
+        </div>`;
+      }
+    }).join('');
+  }
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheetOverlay').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('sheetOverlay').classList.remove('open');
+}
+
+function completeReview(pid,iid) {
+  const p=reviewPlans.find(p=>p.id===pid);
+  if(!p)return;
+  const inst=p.instances.find(i=>i.id===iid);
+  if(!inst)return;
+  inst.status='completed';
+  saveAll();renderCalendar();renderReviewPlans();closeSheet();
+}
+
+function postponeReview(pid,iid) {
+  const p=reviewPlans.find(p=>p.id===pid);
+  if(!p)return;
+  const inst=p.instances.find(i=>i.id===iid);
+  if(!inst)return;
+  const d=new Date(inst.scheduledDate+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  inst.scheduledDate=d.toISOString().slice(0,10);
+  inst.status='postponed';
+  saveAll();renderCalendar();renderReviewPlans();closeSheet();
+}
+
+function cancelReview(pid,iid) {
+  const p=reviewPlans.find(p=>p.id===pid);
+  if(!p)return;
+  const inst=p.instances.find(i=>i.id===iid);
+  if(!inst)return;
+  inst.status='cancelled';
+  saveAll();renderCalendar();renderReviewPlans();closeSheet();
+}
+
+function completeTodoFromSheet(tid) {
+  const t=todoTasks.find(t=>t.id===tid);
+  if(t){t.completed=true;saveAll();}
+  renderCalendar();renderTodos();closeSheet();
+}
+
+// ============================================================
+// TIME TRACKING (Timer)
+// ============================================================
+let timerInterval=null,timerSeconds=0,timerState='stopped';
+
+function timerStart() {
+  const act=document.getElementById('timerActivity').value.trim();
+  if(!act){alert('请先输入活动名称');return;}
+  if(timerState==='running')return;
+  if(timerState==='paused'){timerState='running';updateTimerUI();timerInterval=setInterval(timerTick,1000);return;}
+  timerSeconds=0;timerState='running';updateTimerDisplay();updateTimerUI();
+  timerInterval=setInterval(timerTick,1000);
+}
+
+function timerPause(){timerState='paused';clearInterval(timerInterval);timerInterval=null;updateTimerUI();}
+
+function timerStop() {
+  if(timerState==='stopped')return;
+  clearInterval(timerInterval);timerInterval=null;
+  const act=document.getElementById('timerActivity').value.trim();
+  const dur=Math.round(timerSeconds/60);
+  if(dur>0&&act){
+    timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:act,startTime:new Date(Date.now()-timerSeconds*1000).toISOString(),endTime:nowStr(),duration:dur,date:todayStr(),type:'timer'});
+  }
+  timerSeconds=0;timerState='stopped';updateTimerDisplay();updateTimerUI();saveAll();
+}
+
+function timerTick(){timerSeconds++;updateTimerDisplay();}
+
+function updateTimerDisplay() {
+  const m=Math.floor(timerSeconds/60),s=timerSeconds%60;
+  document.getElementById('timerDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function updateTimerUI() {
+  const c=document.getElementById('timerCircle');
+  const sb=document.getElementById('timerStartBtn');
+  const pb=document.getElementById('timerPauseBtn');
+  const tb=document.getElementById('timerStopBtn');
+  c.className='timer-circle';
+  if(timerState==='running')c.classList.add('running');
+  if(timerState==='paused')c.classList.add('paused');
+  if(timerState==='running'){sb.style.display='none';pb.style.display='';tb.style.display='';}
+  else if(timerState==='paused'){sb.style.display='';pb.style.display='none';tb.style.display='';sb.textContent='▶ 继续';}
+  else{sb.style.display='';pb.style.display='none';tb.style.display='none';sb.textContent='▶ 开始';}
+}
+
+// ============================================================
+// POMODORO
+// ============================================================
+let pomoInterval=null,pomoSeconds=0,pomoState='stopped';
+
+function pomoStart() {
+  if(pomoState==='running')return;
+  const dur=parseInt(document.getElementById('pomoDuration').value)||25;
+  pomodoroSettings.focusDuration=dur;
+  pomoSeconds=dur*60;pomoState='running';updatePomoDisplay();
+  document.getElementById('pomoCircle').classList.add('running');
+  document.getElementById('pomoStartBtn').style.display='none';
+  document.getElementById('pomoStopBtn').style.display='';
+  document.getElementById('pomoFinished').classList.remove('show');
+  pomoInterval=setInterval(pomoTick,1000);
+}
+
+function pomoStop() {
+  clearInterval(pomoInterval);pomoInterval=null;
+  const dur=pomodoroSettings.focusDuration;
+  const elapsed=dur*60-pomoSeconds;
+  const min=Math.round(elapsed/60);
+  if(min>0){timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:'番茄钟专注',startTime:new Date(Date.now()-elapsed*1000).toISOString(),endTime:nowStr(),duration:min,date:todayStr(),type:'pomodoro'});saveAll();}
+  pomoState='stopped';pomoSeconds=dur*60;updatePomoDisplay();
+  document.getElementById('pomoCircle').classList.remove('running');
+  document.getElementById('pomoStartBtn').style.display='';
+  document.getElementById('pomoStopBtn').style.display='none';
+  document.getElementById('pomoFinished').classList.remove('show');
+}
+
+function pomoTick() {
+  pomoSeconds--;updatePomoDisplay();
+  if(pomoSeconds<=0) {
+    clearInterval(pomoInterval);pomoInterval=null;pomoState='stopped';
+    const dur=pomodoroSettings.focusDuration;
+    document.getElementById('pomoCircle').classList.remove('running');
+    document.getElementById('pomoCircle').classList.add('finished');
+    document.getElementById('pomoStartBtn').style.display='';
+    document.getElementById('pomoStopBtn').style.display='none';
+    document.getElementById('pomoFinished').classList.add('show');
+    timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:'番茄钟专注',startTime:new Date(Date.now()-dur*60000).toISOString(),endTime:nowStr(),duration:dur,date:todayStr(),type:'pomodoro'});
+    pomoSeconds=dur*60;updatePomoDisplay();saveAll();
+  }
+}
+
+function updatePomoDisplay() {
+  const m=Math.floor(pomoSeconds/60),s=pomoSeconds%60;
+  document.getElementById('pomoDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+// ============================================================
+// MANUAL RECORD
+// ============================================================
+function addManualRecord() {
+  const act=document.getElementById('manualActivity').value.trim();
+  const dur=parseInt(document.getElementById('manualDuration').value);
+  const cid=document.getElementById('manualCategory').value;
+  const dt=document.getElementById('manualDate').value||todayStr();
+  if(!act){alert('请输入活动名称');return;}
+  if(!dur||dur<1){alert('请输入有效时长');return;}
+  timeRecords.push({id:uid(),categoryId:cid,taskId:null,activity:act,startTime:null,endTime:null,duration:dur,date:dt,type:'manual'});
+  document.getElementById('manualActivity').value='';
+  document.getElementById('manualDuration').value='30';
+  saveAll();alert('记录已添加！');
+}
+
+// ============================================================
+// STATISTICS
+// ============================================================
+let statsPeriod='week';
+
+function setPeriod(p,btn) {
+  statsPeriod=p;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderSummary();
+}
+
+function renderStats() {
+  const today=todayStr();
+  let completed=0,overdue=0,postponed=0;
+  reviewPlans.forEach(p=>{
+    p.instances.forEach(inst=>{
+      const st=getReviewStatus(inst);
+      if(inst.scheduledDate===today) {
+        if(st==='completed')completed++;
+        else if(st==='postponed')postponed++;
+        else overdue++;
+      } else if(inst.scheduledDate<today&&st==='overdue')overdue++;
+    });
+  });
+  const todoDone=todoTasks.filter(t=>t.completed).length;
+  const todayRecords=timeRecords.filter(r=>r.date===today);
+  const totalTime=todayRecords.reduce((s,r)=>s+r.duration,0);
+  document.getElementById('statCompleted').textContent=completed;
+  document.getElementById('statOverdue').textContent=overdue;
+  document.getElementById('statPostponed').textContent=postponed;
+  document.getElementById('statTodoDone').textContent=todoDone;
+  document.getElementById('statTotalTime').textContent=totalTime;
+  renderPieChart(todayRecords);
+  renderTimeline(todayRecords);
+  renderSummary();
+}
+
+function renderPieChart(todayRecords) {
+  const svg=document.getElementById('pieChart');
+  const legend=document.getElementById('pieLegend');
+  const empty=document.getElementById('pieEmpty');
+  if(!todayRecords.length){svg.style.display='none';legend.innerHTML='';empty.style.display='block';return;}
+  svg.style.display='';empty.style.display='none';
+  const agg={};
+  todayRecords.forEach(r=>{const cid=r.categoryId||'__none';if(!agg[cid])agg[cid]=0;agg[cid]+=r.duration;});
+  const total=Object.values(agg).reduce((s,v)=>s+v,0);
+  const entries=Object.entries(agg);
+  const cx=80,cy=80,r=70;
+  let angle=-Math.PI/2,paths='';
+  const colors=[];
+  entries.forEach(([cid,val])=>{
+    const slice=val/total*2*Math.PI;
+    const x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle);
+    const x2=cx+r*Math.cos(angle+slice),y2=cy+r*Math.sin(angle+slice);
+    const large=slice>Math.PI?1:0;
+    paths+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${getCategoryColor(cid)}"/>`;
+    angle+=slice;colors.push({cid,val,color:getCategoryColor(cid)});
+  });
+  svg.innerHTML=paths;
+  legend.innerHTML=colors.map(c=>{const cat=getCategory(c.cid);const name=cat?cat.name:'未分类';const pct=Math.round(c.val/total*100);return `<div><span class="swatch" style="background:${c.color}"></span> ${name}:${c.val}分钟(${pct}%)</div>`;}).join('');
+}
+
+function renderTimeline(todayRecords) {
+  const el=document.getElementById('timelineList');
+  if(!todayRecords.length){el.innerHTML='<div class="empty-state" style="padding:16px"><p>今天还没有时间记录</p></div>';return;}
+  const sorted=[...todayRecords].sort((a,b)=>(a.startTime&&b.startTime)?a.startTime.localeCompare(b.startTime):0);
+  el.innerHTML=sorted.map(r=>`<div class="timeline-item"><div class="tl-left"><span class="tl-cat" style="background:${getCategoryColor(r.categoryId)}"></span><span class="tl-name">${escHtml(r.activity)}</span></div><span class="tl-time">${r.duration}分钟</span></div>`).join('');
+}
+
+function renderSummary() {
+  const el=document.getElementById('summaryContent');
+  const now=new Date();
+  let sd;
+  if(statsPeriod==='week'){sd=new Date(now);sd.setDate(now.getDate()-now.getDay());}
+  else{sd=new Date(now.getFullYear(),now.getMonth(),1);}
+  const ss=sd.toISOString().slice(0,10);
+  const pr=timeRecords.filter(r=>r.date>=ss);
+  const tm=pr.reduce((s,r)=>s+r.duration,0);
+  const days=Math.max(1,Math.ceil((now-sd)/86400000)+1);
+  const avg=Math.round(tm/days);
+  const ca={};
+  pr.forEach(r=>{const cid=r.categoryId||'__none';if(!ca[cid])ca[cid]=0;ca[cid]+=r.duration;});
+  const top=Object.entries(ca).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  el.innerHTML=`<p>📅 ${ss}~${todayStr()} (${days}天)</p>
+    <p>⏱ 总时长:<strong>${tm}</strong>分钟(${(tm/60).toFixed(1)}小时)</p>
+    <p>📊 日均:<strong>${avg}</strong>分钟</p>
+    ${top.length?`<p>🏆 耗时最多:${top.map(([cid,min])=>{const cat=getCategory(cid);return `<span style="color:${getCategoryColor(cid)};font-weight:600">${cat?cat.name:'未分类'} ${min}分钟</span>`;}).join('、')}</p>`:''}`;
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('reviewIntervals').addEventListener('input',updateIntervalChips);
+document.getElementById('manualDate').value=todayStr();
+document.getElementById('pomoDuration').addEventListener('change',function(){const v=parseInt(this.value)||25;pomodoroSettings.focusDuration=v;pomoSeconds=v*60;updatePomoDisplay();saveAll();});
+
+function init() {
+  initCalendar();renderCalendar();renderTodos();renderReviewPlans();
+  renderCategories();populateCategorySelects();
+  pomoSeconds=pomodoroSettings.focusDuration*60;updatePomoDisplay();
+  updateIntervalChips();initRoute();
+}
+init();
+</script>
+</body>
+</html>
