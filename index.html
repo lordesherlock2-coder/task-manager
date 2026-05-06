@@ -693,7 +693,6 @@ function deleteReviewPlan(id) {
 
 function getReviewStatus(inst) {
   if(inst.status==='completed'||inst.status==='cancelled')return inst.status;
-  if(inst.status==='postponed')return 'postponed';
   if(inst.scheduledDate<todayStr())return 'overdue';
   return 'pending';
 }
@@ -1027,7 +1026,7 @@ function renderStats() {
       const st=getReviewStatus(inst);
       if(inst.scheduledDate===today) {
         if(st==='completed')completed++;
-        else if(st==='postponed')postponed++;
+        else if(inst.status==='postponed')postponed++;
         else overdue++;
       } else if(inst.scheduledDate<today&&st==='overdue')overdue++;
     });
