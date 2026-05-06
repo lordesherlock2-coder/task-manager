@@ -39,39 +39,29 @@ input,select,textarea{font-family:inherit;font-size:inherit}
 .header{
   position:sticky;top:0;z-index:100;background:var(--card);
   height:var(--header-h);display:flex;align-items:center;padding:0 16px;
-  border-bottom:1px solid var(--border);gap:12px;
+  border-bottom:1px solid var(--border);justify-content:center;
 }
-.header .menu-btn{width:36px;height:36px;border:none;background:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm)}
-.header .menu-btn:active{background:var(--border)}
 .header .title{font-size:17px;font-weight:700}
 
-/* ============ Drawer ============ */
-.drawer-overlay{
-  position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);
-  z-index:200;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;
+/* ============ Bottom Tab Bar ============ */
+.tab-bar{
+  position:fixed;bottom:0;left:0;right:0;background:var(--card);
+  border-top:1px solid var(--border);z-index:120;
+  display:flex;justify-content:space-around;
+  padding-bottom:env(safe-area-inset-bottom,0);
+  max-width:768px;margin:0 auto;
 }
-.drawer-overlay.open{opacity:1;visibility:visible}
-.drawer{
-  position:fixed;top:0;left:0;bottom:0;width:var(--drawer-w);background:var(--card);
-  z-index:210;transform:translateX(-100%);transition:transform .25s ease;
-  display:flex;flex-direction:column;
+.tab-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:6px 0;cursor:pointer;color:var(--text2);transition:color .15s;
+  -webkit-tap-highlight-color:transparent;user-select:none;
 }
-.drawer.open{transform:translateX(0)}
-.drawer-head{
-  padding:20px 16px 12px;font-size:18px;font-weight:700;
-  border-bottom:1px solid var(--border);
-}
-.drawer-nav{flex:1;padding:8px 0;overflow-y:auto}
-.drawer-nav a{
-  display:flex;align-items:center;gap:12px;padding:13px 20px;
-  text-decoration:none;color:var(--text);font-size:15px;
-  border-left:3px solid transparent;transition:background .15s;
-}
-.drawer-nav a:hover,.drawer-nav a.active{background:var(--accent-light);border-left-color:var(--accent);color:var(--accent)}
-.drawer-nav a .ico{font-size:18px;width:24px;text-align:center}
+.tab-item.active{color:var(--accent)}
+.tab-item .tab-icon{font-size:20px;line-height:1}
+.tab-item .tab-label{font-size:10px;margin-top:2px;font-weight:500}
 
 /* ============ Page Container ============ */
-.page{display:none;padding:16px;padding-bottom:80px}
+.page{display:none;padding:16px;padding-bottom:72px}
 .page.active{display:block}
 
 /* ============ Cards & Forms ============ */
@@ -257,21 +247,28 @@ input,select,textarea{font-family:inherit;font-size:inherit}
 
 <!-- ============ Header ============ -->
 <div class="header">
-  <button class="menu-btn" onclick="toggleDrawer()" aria-label="菜单">☰</button>
   <span class="title" id="pageTitle">Todo 清单</span>
 </div>
 
-<!-- ============ Drawer ============ -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-<nav class="drawer" id="drawer">
-  <div class="drawer-head">📋 菜单</div>
-  <div class="drawer-nav">
-    <a href="#todo" data-page="todo" onclick="navigateTo('todo')"><span class="ico">✅</span> Todo 清单</a>
-    <a href="#review" data-page="review" onclick="navigateTo('review')"><span class="ico">📖</span> 学习复习</a>
-    <a href="#calendar" data-page="calendar" onclick="navigateTo('calendar')"><span class="ico">📅</span> 日历</a>
-    <a href="#track" data-page="track" onclick="navigateTo('track')"><span class="ico">⏱</span> 时间追踪</a>
-    <a href="#stats" data-page="stats" onclick="navigateTo('stats')"><span class="ico">📊</span> 统计</a>
-    <a href="#settings" data-page="settings" onclick="navigateTo('settings')"><span class="ico">⚙</span> 设置</a>
+<!-- ============ Bottom Tab Bar ============ -->
+<nav class="tab-bar" id="tabBar">
+  <div class="tab-item active" data-page="todo" onclick="navigateTo('todo')">
+    <span class="tab-icon">✅</span><span class="tab-label">任务</span>
+  </div>
+  <div class="tab-item" data-page="review" onclick="navigateTo('review')">
+    <span class="tab-icon">📖</span><span class="tab-label">复习</span>
+  </div>
+  <div class="tab-item" data-page="calendar" onclick="navigateTo('calendar')">
+    <span class="tab-icon">📅</span><span class="tab-label">日历</span>
+  </div>
+  <div class="tab-item" data-page="track" onclick="navigateTo('track')">
+    <span class="tab-icon">⏱</span><span class="tab-label">计时</span>
+  </div>
+  <div class="tab-item" data-page="stats" onclick="navigateTo('stats')">
+    <span class="tab-icon">📊</span><span class="tab-label">统计</span>
+  </div>
+  <div class="tab-item" data-page="settings" onclick="navigateTo('settings')">
+    <span class="tab-icon">⚙</span><span class="tab-label">设置</span>
   </div>
 </nav>
 
@@ -518,11 +515,10 @@ function navigateTo(page) {
   const t=document.getElementById('page-'+page);
   if(t)t.classList.add('active');
   document.getElementById('pageTitle').textContent=pageTitles[page]||page;
-  document.querySelectorAll('.drawer-nav a').forEach(a=>a.classList.remove('active'));
-  const link=document.querySelector(`.drawer-nav a[data-page="${page}"]`);
-  if(link)link.classList.add('active');
+  document.querySelectorAll('.tab-item').forEach(el=>el.classList.remove('active'));
+  const tab=document.querySelector(`.tab-item[data-page="${page}"]`);
+  if(tab)tab.classList.add('active');
   window.location.hash='#'+page;
-  closeDrawer();
   if(page==='calendar')renderCalendar();
   if(page==='stats')renderStats();
   if(page==='review')renderReviewPlans();
@@ -536,22 +532,6 @@ function initRoute() {
   navigateTo(hash);
 }
 window.addEventListener('hashchange',initRoute);
-
-// ============================================================
-// DRAWER
-// ============================================================
-function toggleDrawer() {
-  const d=document.getElementById('drawer');
-  d.classList.contains('open')?closeDrawer():openDrawer();
-}
-function openDrawer() {
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawerOverlay').classList.add('open');
-}
-function closeDrawer() {
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawerOverlay').classList.remove('open');
-}
 
 // ============================================================
 // CATEGORIES
@@ -883,36 +863,54 @@ function completeTodoFromSheet(tid) {
 }
 
 // ============================================================
-// TIME TRACKING (Timer)
+// TIME TRACKING (Timer) — wall-clock based, survives backgrounding
 // ============================================================
-let timerInterval=null,timerSeconds=0,timerState='stopped';
+let timerInterval=null,timerState='stopped';
+let timerStartedAt=0;        // Date.now() when started
+let timerPausedOffset=0;    // accumulated paused time in seconds
 
 function timerStart() {
   const act=document.getElementById('timerActivity').value.trim();
   if(!act){alert('请先输入活动名称');return;}
   if(timerState==='running')return;
-  if(timerState==='paused'){timerState='running';updateTimerUI();timerInterval=setInterval(timerTick,1000);return;}
-  timerSeconds=0;timerState='running';updateTimerDisplay();updateTimerUI();
-  timerInterval=setInterval(timerTick,1000);
+  if(timerState==='paused'){
+    timerPausedOffset+=Math.floor((Date.now()-timerStartedAt)/1000);
+    timerState='running';updateTimerUI();timerInterval=setInterval(timerTick,250);return;
+  }
+  timerStartedAt=Date.now();timerPausedOffset=0;timerState='running';
+  updateTimerUI();timerInterval=setInterval(timerTick,250);
 }
 
-function timerPause(){timerState='paused';clearInterval(timerInterval);timerInterval=null;updateTimerUI();}
+function timerPause(){
+  timerState='paused';clearInterval(timerInterval);timerInterval=null;
+  timerPausedOffset+=Math.floor((Date.now()-timerStartedAt)/1000);
+  updateTimerUI();updateTimerDisplay();
+}
 
 function timerStop() {
   if(timerState==='stopped')return;
   clearInterval(timerInterval);timerInterval=null;
+  const elapsed=Math.floor((Date.now()-timerStartedAt)/1000)+timerPausedOffset;
+  const dur=Math.max(1,Math.round(elapsed/60));
   const act=document.getElementById('timerActivity').value.trim();
-  const dur=Math.round(timerSeconds/60);
-  if(dur>0&&act){
-    timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:act,startTime:new Date(Date.now()-timerSeconds*1000).toISOString(),endTime:nowStr(),duration:dur,date:todayStr(),type:'timer'});
+  if(act){
+    timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:act,startTime:new Date(Date.now()-elapsed*1000).toISOString(),endTime:nowStr(),duration:dur,date:todayStr(),type:'timer'});
   }
-  timerSeconds=0;timerState='stopped';updateTimerDisplay();updateTimerUI();saveAll();
+  timerStartedAt=0;timerPausedOffset=0;timerState='stopped';updateTimerDisplay();updateTimerUI();saveAll();
 }
 
-function timerTick(){timerSeconds++;updateTimerDisplay();}
+function timerTick(){
+  updateTimerDisplay();
+}
+
+function getTimerSeconds(){
+  if(timerState==='running')return Math.floor((Date.now()-timerStartedAt)/1000)+timerPausedOffset;
+  return timerPausedOffset;
+}
 
 function updateTimerDisplay() {
-  const m=Math.floor(timerSeconds/60),s=timerSeconds%60;
+  const sec=getTimerSeconds();
+  const m=Math.floor(sec/60),s=sec%60;
   document.getElementById('timerDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 
@@ -930,29 +928,31 @@ function updateTimerUI() {
 }
 
 // ============================================================
-// POMODORO
+// POMODORO — wall-clock based
 // ============================================================
-let pomoInterval=null,pomoSeconds=0,pomoState='stopped';
+let pomoInterval=null,pomoState='stopped';
+let pomoStartedAt=0,pomoTotalSec=0;
 
 function pomoStart() {
   if(pomoState==='running')return;
   const dur=parseInt(document.getElementById('pomoDuration').value)||25;
   pomodoroSettings.focusDuration=dur;
-  pomoSeconds=dur*60;pomoState='running';updatePomoDisplay();
+  pomoTotalSec=dur*60;pomoStartedAt=Date.now();pomoState='running';
+  updatePomoDisplay();
+  document.getElementById('pomoCircle').classList.remove('finished');
   document.getElementById('pomoCircle').classList.add('running');
   document.getElementById('pomoStartBtn').style.display='none';
   document.getElementById('pomoStopBtn').style.display='';
   document.getElementById('pomoFinished').classList.remove('show');
-  pomoInterval=setInterval(pomoTick,1000);
+  pomoInterval=setInterval(pomoTick,250);
 }
 
 function pomoStop() {
   clearInterval(pomoInterval);pomoInterval=null;
-  const dur=pomodoroSettings.focusDuration;
-  const elapsed=dur*60-pomoSeconds;
-  const min=Math.round(elapsed/60);
+  const elapsed=Math.floor((Date.now()-pomoStartedAt)/1000);
+  const min=Math.max(1,Math.round(elapsed/60));
   if(min>0){timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:'番茄钟专注',startTime:new Date(Date.now()-elapsed*1000).toISOString(),endTime:nowStr(),duration:min,date:todayStr(),type:'pomodoro'});saveAll();}
-  pomoState='stopped';pomoSeconds=dur*60;updatePomoDisplay();
+  pomoState='stopped';pomoStartedAt=0;updatePomoDisplay();
   document.getElementById('pomoCircle').classList.remove('running');
   document.getElementById('pomoStartBtn').style.display='';
   document.getElementById('pomoStopBtn').style.display='none';
@@ -960,24 +960,36 @@ function pomoStop() {
 }
 
 function pomoTick() {
-  pomoSeconds--;updatePomoDisplay();
-  if(pomoSeconds<=0) {
+  const remaining=pomoTotalSec-Math.floor((Date.now()-pomoStartedAt)/1000);
+  updatePomoDisplay();
+  if(remaining<=0){
     clearInterval(pomoInterval);pomoInterval=null;pomoState='stopped';
-    const dur=pomodoroSettings.focusDuration;
     document.getElementById('pomoCircle').classList.remove('running');
     document.getElementById('pomoCircle').classList.add('finished');
     document.getElementById('pomoStartBtn').style.display='';
     document.getElementById('pomoStopBtn').style.display='none';
     document.getElementById('pomoFinished').classList.add('show');
-    timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:'番茄钟专注',startTime:new Date(Date.now()-dur*60000).toISOString(),endTime:nowStr(),duration:dur,date:todayStr(),type:'pomodoro'});
-    pomoSeconds=dur*60;updatePomoDisplay();saveAll();
+    timeRecords.push({id:uid(),categoryId:categories[0]?.id||'',taskId:null,activity:'番茄钟专注',startTime:new Date(Date.now()-pomoTotalSec*1000).toISOString(),endTime:nowStr(),duration:pomoTotalSec/60,date:todayStr(),type:'pomodoro'});
+    pomoStartedAt=0;updatePomoDisplay();saveAll();
   }
 }
 
 function updatePomoDisplay() {
-  const m=Math.floor(pomoSeconds/60),s=pomoSeconds%60;
+  let sec;
+  if(pomoState==='running')sec=pomoTotalSec-Math.floor((Date.now()-pomoStartedAt)/1000);
+  else sec=pomodoroSettings.focusDuration*60;
+  if(sec<0)sec=0;
+  const m=Math.floor(sec/60),s=sec%60;
   document.getElementById('pomoDisplay').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
+
+// visibility change — update display immediately when page becomes visible
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){
+    if(timerState==='running'||timerState==='paused')updateTimerDisplay();
+    if(pomoState==='running')updatePomoDisplay();
+  }
+});
 
 // ============================================================
 // MANUAL RECORD
@@ -1095,12 +1107,12 @@ function escHtml(s){const d=document.createElement('div');d.textContent=s;return
 // ============================================================
 document.getElementById('reviewIntervals').addEventListener('input',updateIntervalChips);
 document.getElementById('manualDate').value=todayStr();
-document.getElementById('pomoDuration').addEventListener('change',function(){const v=parseInt(this.value)||25;pomodoroSettings.focusDuration=v;pomoSeconds=v*60;updatePomoDisplay();saveAll();});
+document.getElementById('pomoDuration').addEventListener('change',function(){const v=parseInt(this.value)||25;pomodoroSettings.focusDuration=v;updatePomoDisplay();saveAll();});
 
 function init() {
   initCalendar();renderCalendar();renderTodos();renderReviewPlans();
   renderCategories();populateCategorySelects();
-  pomoSeconds=pomodoroSettings.focusDuration*60;updatePomoDisplay();
+  updatePomoDisplay();
   updateIntervalChips();initRoute();
 }
 init();
